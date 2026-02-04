@@ -1,6 +1,4 @@
 # Drone-Matematiksel-Modelleme
-# Drone Matematiksel Modelleme
-
 Bu repo, **Newton-Euler denklemleri ile bir drone’un (quadrotor) matematiksel modellemesini ve simulasyonunu** içerir. Modellemeler ve simülasyonlar **MATLAB** ortamında yapılmıştır.
 
 ---
