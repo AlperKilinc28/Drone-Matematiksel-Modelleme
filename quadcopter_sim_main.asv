@@ -1,0 +1,101 @@
+%% --- ADIM 2: PARAMETRE TANIMLAMA (quadcopter_sim_main.m) ---
+
+% 1. Fiziksel Sabitler (Makaleden Tablo 1)
+m       = 0.468;        % Kütle [kg]
+g       = 9.81;         % Yerçekimi [m/s^2]
+l       = 0.225;        % Rotor-merkez mesafesi [m]
+Ixx     = 4.856e-3;     % Roll Atalet Momenti [kg*m^2]
+Iyy     = 4.856e-3;     % Pitch Atalet Momenti [kg*m^2]
+Izz     = 8.801e-3;     % Yaw Atalet Momenti [kg*m^2]
+k       = 2.980e-6;     % Lift (Kaldırma) Sabiti
+b       = 1.140e-7;     % Drag (Sürükleme) Sabiti (Yaw için kullanılıyor)
+Ax      = 0.25;         % X-yönü Sürtünme Katsayısı [kg/s] (Makaleden)
+Ay      = 0.25;         % Y-yönü Sürtünme Katsayısı [kg/s]
+Az      = 0.25;         % Z-yönü Sürtünme Katsayısı [kg/s]
+
+% 2. Dinamik Sabitler (Denklem kolaylığı için)
+I       = [Ixx, Iyy, Izz]; % Atalet Momentleri Vektörü
+
+constants = [m, g, l, k, b, I, Ax, Ay, Az, Ixx, Iyy, Izz]; % Dinamik fonksiyonuna iletilecek sabitler
+
+% 3. Başlangıç Koşulları (Quadcopter 100metre yükseklikte dengede başlasın)
+% Durum Vektörü: x = [x, y, z, phi, theta, psi, dx, dy, dz, p, q, r]
+x0      = 0; y0      = 0; z0      = 100;    % Konum [m]
+phi0    = 0; theta0  = 0; psi0    = 0;    % Duruş [rad]
+dx0     = 0; dy0     = 0; dz0     = 0;    % Doğrusal Hızlar [m/s]
+p0      = 0; q0      = 0; r0      = 0;    % Açısal Hızlar [rad/s]
+
+initial_state = [x0, y0, z0, phi0, theta0, psi0, dx0, dy0, dz0, p0, q0, r0];
+
+% 4. Simülasyon Ayarları
+Tspan = [0 20];         % Simülasyon süresi (0'dan 60 saniyeye)
+%% --- ADIM 5: SİMÜLASYON VE ÇÖZÜM ---
+
+% ode45 çözücüsünü kullanarak sistemi entegre etme
+% @(t,X) ifadesi, 'quadcopter_dynamics' fonksiyonunun (t, X, constants) çağrılması demektir.
+[T, X] = ode45(@(t, X) quadcopter_dynamics(t, X, constants), Tspan, initial_state);
+
+
+%% --- SONUÇLARI GÖRSELLEŞTİRME ---
+
+figure;
+
+% 1. Konum Grafiği (x, y, z)
+subplot(3,1,1); % 3 satır, 1 sütun, 1. sıra
+plot(T, X(:, 1), 'r', 'LineWidth', 2); hold on; % x konumu
+plot(T, X(:, 2), 'g', 'LineWidth', 2);          % y konumu
+plot(T, X(:, 3), 'b', 'LineWidth', 2);          % z konumu
+xlabel('Zaman (s)');
+ylabel('Konum (m)');
+title('1. Konum Değişimi (x, y, z)');
+legend('x', 'y', 'z', 'Location', 'best');
+grid on;
+
+% 2. Hız Grafiği (dx, dy, dz)
+subplot(3,1,2); % 3 satır, 1 sütun, 2. sıra
+plot(T, X(:, 7), 'r', 'LineWidth', 2); hold on; % dx hızı (X(:,7))
+plot(T, X(:, 8), 'g', 'LineWidth', 2);          % dy hızı (X(:,8))
+plot(T, X(:, 9), 'b', 'LineWidth', 2);          % dz hızı (X(:,9))
+xlabel('Zaman (s)');
+ylabel('Hız (m/s)');
+title('2. Doğrusal Hız Değişimi (dx, dy, dz)');
+legend('dx', 'dy', 'dz', 'Location', 'best');
+grid on;
+
+
+% 3. Duruş Grafiği (phi, theta, psi)
+subplot(3,1,3); % 3 satır, 1 sütun, 3. sıra
+plot(T, rad2deg(X(:, 4)), 'r', 'LineWidth', 2); hold on; % Roll (phi)
+plot(T, rad2deg(X(:, 5)), 'g', 'LineWidth', 2);          % Pitch (theta)
+plot(T, rad2deg(X(:, 6)), 'b', 'LineWidth', 2);          % Yaw (psi)
+xlabel('Zaman (s)');
+ylabel('Açı (derece)');
+title('3. Duruş Değişimi (Roll, Pitch, Yaw)');
+legend('\phi (Roll)', '\theta (Pitch)', '\psi (Yaw)', 'Location', 'best');
+grid on;
+
+%% --- 3D YÖRÜNGE İZİ ÇİZİMİ ---
+
+figure; % Yeni bir pencere aç
+
+% 1. Tüm X, Y, Z Konumlarını Çizme
+% X(:, 1) -> Tüm x konumları
+% X(:, 2) -> Tüm y konumları
+% X(:, 3) -> Tüm z konumları
+
+plot3(X(:, 1), X(:, 2), X(:, 3), 'k-', 'LineWidth', 2); hold on;
+
+% 2. Başlangıç ve Bitiş Noktalarını İşaretleme
+plot3(X(1, 1), X(1, 2), X(1, 3), 'go', 'MarkerSize', 8, 'MarkerFaceColor', 'g'); % Başlangıç (Yeşil)
+plot3(X(end, 1), X(end, 2), X(end, 3), 'rx', 'MarkerSize', 10, 'LineWidth', 2); % Bitiş (Kırmızı X)
+
+% 3. Eksen Ayarları
+xlabel('X Konumu (m) - İleri');
+ylabel('Y Konumu (m) - Yan');
+zlabel('Z Konumu (m) - Yükseklik');
+title('Quadcopter Uçuş Yörüngesi (Geçmiş Hareket İzi)');
+grid on;
+
+% 4. Görünüm Ayarları
+axis equal; % Eksen oranlarını eşitler (Gerçekçi görünüm için önemli)
+view(3);    % 3D perspektifi ayarlar
